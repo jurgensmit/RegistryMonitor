@@ -9,6 +9,7 @@ using System.IO;
 using System.Linq;
 using System.ServiceProcess;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace RegistryMonitorService
@@ -47,16 +48,22 @@ namespace RegistryMonitorService
 
         private void SetRegistryValues()
         {
-            try
+            for (int retry = 0; retry < 10; retry++)
             {
-                if ((int)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE", "RDVDenyWriteAccess", 0) != 0)
+                try
                 {
-                    Registry.SetValue(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE", "RDVDenyWriteAccess", 0, RegistryValueKind.DWord);
+                    if ((int)Registry.GetValue(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE", "RDVDenyWriteAccess", 0) != 0)
+                    {
+                        Registry.SetValue(@"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Policies\Microsoft\FVE", "RDVDenyWriteAccess", 0, RegistryValueKind.DWord);
+                        EventLog.WriteEntry("Registry Monitor", "RDVDenyWriteAccess successfully reset to 0", EventLogEntryType.Information);
+                    }
+                    break;
                 }
-            }
-            catch (Exception e)
-            {
-                EventLog.WriteEntry("Registry Monitor", e.ToString(), EventLogEntryType.Error);
+                catch (Exception e)
+                {
+                    EventLog.WriteEntry("Registry Monitor", e.ToString(), EventLogEntryType.Error);
+                    Thread.Sleep(TimeSpan.FromSeconds(1));
+                }
             }
         }
 
